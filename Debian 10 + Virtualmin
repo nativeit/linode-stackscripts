@@ -1,0 +1,137 @@
+#!/bin/bash
+# This block defines the variables the user of the script needs to input
+# when deploying using this script.
+#
+# <udf name="user_name" label="Unprivileged User Account" />
+# <udf name="user_password" label="Unprivileged User Password" />
+# <udf name="user_sshkey" label="RSA Public Key (Recommended)" />
+#
+# <udf name="sshd_port" label="SSH Port" default="22" />
+# <udf name="sshd_protocol" label="SSH Protocol (Leave Default)" oneOf="1,2,1 and 2" default="2" />
+# <udf name="sshd_permitroot" label="SSH Permit Root Login" oneof="No,Yes" default="No" />
+# <udf name="sshd_passwordauth" label="SSH Password Authentication" oneOf="No,Yes" default="No" />
+# <udf name="sshd_group" label="SSH Allowed Groups (Leave Default)" default="sshusers" example="List of groups seperated by spaces" />
+# <udf name="sudo_usergroup" label="Admin Usergroup (Leave Default)" default="wheel" />
+# <udf name="sudo_passwordless" label="Passwordless Sudo (Leave Default)" oneof="Require Password,Do Not Require Password", default="Require Password" />
+#
+#<UDF name="fqdn" label="The new Linode's Fully Qualified Domain Name">
+# FQDN=
+#
+#<UDF name="addignoreip" label="Enter your local WAN IP address to exempt it from Fail2Ban">
+# IGNOREIP=
+# Include Linode BASH Library from https://www.linode.com/stackscripts/view/1
+source <ssinclude StackScriptID=1>
+# This sets the variable $IPADDR to the IP address the new Linode receives.
+IPADDR=$(/sbin/ifconfig eth0 | awk '/inet / { print $2 }' | sed 's/addr://')
+echo "###################################################################################"
+echo "Please be Patient: Installation will start now....... It may take some time :)"
+echo "###################################################################################"
+# apt-get upgrade -y hangs on Grub prompt trying this instead:
+DEBIAN_FRONTEND=noninteractive apt-get -y -o DPkg::options::="--force-confdef" -o DPkg::options::="--force-confold"  install grub-pc
+system_update
+# Prepare services
+apt-get update
+apt-get -y install aptitude
+# aptitude -y full-upgrade
+# This section sets the hostname.
+echo $FQDN > /etc/hostname
+hostname -F /etc/hostname
+# This section sets the Fully Qualified Domain Name (FQDN) in the hosts file.
+echo $IPADDR $FQDN $FQDN >> /etc/hosts
+# This sets the timezone to EST.
+timedatectl set-timezone 'America/New_York'
+# Install and Configure Sudo
+aptitude -y install sudo
+cp /etc/sudoers /etc/sudoers.tmp
+chmod 0640 /etc/sudoers.tmp
+test "${SUDO_PASSWORDLESS}" == "Do Not Require Password" && (echo "%`echo ${SUDO_USERGROUP} | tr '[:upper:]' '[:lower:]'` ALL = NOPASSWD: ALL" >> /etc/sudoers.tmp)
+test "${SUDO_PASSWORDLESS}" == "Require Password" && (echo "%`echo ${SUDO_USERGROUP} | tr '[:upper:]' '[:lower:]'` ALL = (ALL) ALL" >> /etc/sudoers.tmp)
+chmod 0440 /etc/sudoers.tmp
+mv /etc/sudoers.tmp /etc/sudoers
+# Create Groups
+groupadd ${SSHD_GROUP}
+groupadd ${SUDO_USERGROUP}
+# Create User & Add SSH Key
+USER_NAME_LOWER=`echo ${USER_NAME} | tr '[:upper:]' '[:lower:]'`
+useradd -m -s /bin/bash -G ${SSHD_GROUP},${SUDO_USERGROUP} ${USER_NAME_LOWER}
+echo "${USER_NAME_LOWER}:${USER_PASSWORD}" | chpasswd
+USER_HOME=`sed -n "s/${USER_NAME_LOWER}:x:[0-9]*:[0-9]*:[^:]*:\(.*\):.*/\1/p" < /etc/passwd`
+sudo -u ${USER_NAME_LOWER} mkdir ${USER_HOME}/.ssh
+echo "${USER_SSHKEY}" >> $USER_HOME/.ssh/authorized_keys
+chmod 0600 $USER_HOME/.ssh/authorized_keys
+chown ${USER_NAME_LOWER}:${USER_NAME_LOWER} $USER_HOME/.ssh/authorized_keys
+# Configure SSHD
+echo "Port ${SSHD_PORT}" > /etc/ssh/sshd_config.tmp
+echo "Protocol ${SSHD_PROTOCOL}" >> /etc/ssh/sshd_config.tmp
+echo "PubkeyAuthentication yes" >> /etc/ssh/sshd_config.tmp
+sed -n 's/\(HostKey .*\)/\1/p' < /etc/ssh/sshd_config >> /etc/ssh/sshd_config.tmp
+sed -n 's/\(UsePrivilegeSeparation .*\)/\1/p' < /etc/ssh/sshd_config >> /etc/ssh/sshd_config.tmp
+sed -n 's/\(KeyRegenerationInterval .*\)/\1/p' < /etc/ssh/sshd_config >> /etc/ssh/sshd_config.tmp
+sed -n 's/\(ServerKeyBits .*\)/\1/p' < /etc/ssh/sshd_config >> /etc/ssh/sshd_config.tmp
+sed -n 's/\(SyslogFacility .*\)/\1/p' < /etc/ssh/sshd_config >> /etc/ssh/sshd_config.tmp
+sed -n 's/\(LogLevel .*\)/\1/p' < /etc/ssh/sshd_config >> /etc/ssh/sshd_config.tmp
+sed -n 's/\(LoginGraceTime .*\)/\1/p' < /etc/ssh/sshd_config >> /etc/ssh/sshd_config.tmp
+echo "PermitRootLogin `echo ${SSHD_PERMITROOT} | tr '[:upper:]' '[:lower:]'`" >> /etc/ssh/sshd_config.tmp
+sed -n 's/\(StrictModes .*\)/\1/p' < /etc/ssh/sshd_config >> /etc/ssh/sshd_config.tmp
+sed -n 's/\(RSAAuthentication .*\)/\1/p' < /etc/ssh/sshd_config >> /etc/ssh/sshd_config.tmp
+sed -n 's/\(IgnoreRhosts .*\)/\1/p' < /etc/ssh/sshd_config >> /etc/ssh/sshd_config.tmp
+sed -n 's/\(RhostsRSAAuthentication .*\)/\1/p' < /etc/ssh/sshd_config >> /etc/ssh/sshd_config.tmp
+sed -n 's/\(HostbasedAuthentication .*\)/\1/p' < /etc/ssh/sshd_config >> /etc/ssh/sshd_config.tmp
+sed -n 's/\(PermitEmptyPasswords .*\)/\1/p' < /etc/ssh/sshd_config >> /etc/ssh/sshd_config.tmp
+sed -n 's/\(ChallengeResponseAuthentication .*\)/\1/p' < /etc/ssh/sshd_config >> /etc/ssh/sshd_config.tmp
+echo "PasswordAuthentication `echo ${SSHD_PASSWORDAUTH} | tr '[:upper:]' '[:lower:]'`" >> /etc/ssh/sshd_config.tmp
+sed -n 's/\(X11Forwarding .*\)/\1/p' < /etc/ssh/sshd_config >> /etc/ssh/sshd_config.tmp
+sed -n 's/\(X11DisplayOffset .*\)/\1/p' < /etc/ssh/sshd_config >> /etc/ssh/sshd_config.tmp
+sed -n 's/\(PrintMotd .*\)/\1/p' < /etc/ssh/sshd_config >> /etc/ssh/sshd_config.tmp
+sed -n 's/\(PrintLastLog .*\)/\1/p' < /etc/ssh/sshd_config >> /etc/ssh/sshd_config.tmp
+sed -n 's/\(TCPKeepAlive .*\)/\1/p' < /etc/ssh/sshd_config >> /etc/ssh/sshd_config.tmp
+sed -n 's/\(MaxStartups .*\)/\1/p' < /etc/ssh/sshd_config >> /etc/ssh/sshd_config.tmp
+sed -n 's/\(AcceptEnv .*\)/\1/p' < /etc/ssh/sshd_config >> /etc/ssh/sshd_config.tmp
+sed -n 's/\(Subsystem .*\)/\1/p' < /etc/ssh/sshd_config >> /etc/ssh/sshd_config.tmp
+sed -n 's/\(UsePAM .*\)/\1/p' < /etc/ssh/sshd_config >> /etc/ssh/sshd_config.tmp
+echo "AllowGroups `echo ${SSHD_GROUP} | tr '[:upper:]' '[:lower:]'`" >> /etc/ssh/sshd_config.tmp
+chmod 0600 /etc/ssh/sshd_config.tmp
+cp /etc/ssh/sshd_config.tmp /etc/ssh/sshd_config
+touch /tmp/restart-ssh
+# IPv4 Firewall
+iptables -A INPUT -m state --state ESTABLISHED,RELATED -j ACCEPT
+iptables -A INPUT -i lo -m comment --comment "Allow loopback connections" -j ACCEPT
+iptables -A INPUT -p icmp -m comment --comment "Allow Ping to work as expected" -j ACCEPT
+iptables -A INPUT -p tcp -m multiport --destination-port ${SSHD_PORT} -j ACCEPT
+iptables -A INPUT -p tcp -m multiport --destination-ports 22,25,53,80,443,465,4242,5222,5269,5280,8999:9003 -j ACCEPT
+iptables -A INPUT -p udp -m multiport --destination-ports 53 -j ACCEPT
+iptables -P INPUT DROP
+iptables -P FORWARD DROP
+# IPv6 Firewall
+ip6tables -A INPUT -p icmpv6 -j ACCEPT
+ip6tables -A INPUT -p icmpv6 --icmpv6-type router-advertisement -m hl --hl-eq 255 -j ACCEPT
+ip6tables -A INPUT -p icmpv6 --icmpv6-type neighbor-solicitation -m hl --hl-eq 255 -j ACCEPT
+ip6tables -A INPUT -p icmpv6 --icmpv6-type neighbor-advertisement -m hl --hl-eq 255 -j ACCEPT
+ip6tables -A INPUT -p icmpv6 --icmpv6-type redirect -m hl --hl-eq 255 -j ACCEPT
+ip6tables -A INPUT -p tcp --dport 80 -m state --state NEW -j ACCEPT
+ip6tables -A INPUT -p tcp --dport 443 -m state --state NEW -j ACCEPT
+ip6tables -A INPUT -p tcp --dport 4242 -m state --state NEW -j ACCEPT
+ip6tables -A INPUT -m state --state ESTABLISHED,RELATED -j ACCEPT
+ip6tables -A INPUT -j DROP
+ip6tables -A FORWARD -j DROP
+# Make iptables persistent and active on reboot
+echo iptables-persistent iptables-persistent/autosave_v4 boolean true | debconf-set-selections
+echo iptables-persistent iptables-persistent/autosave_v6 boolean true | debconf-set-selections
+aptitude -y install iptables-persistent
+# This installs and sets up Fail2Ban protection
+aptitude -y install fail2ban
+cp /etc/fail2ban/fail2ban.conf /etc/fail2ban/fail2ban.local
+fail2ban-client set JAIL addignoreip $IGNOREIP
+# Install net-tools (netstat)
+aptitude -y install net-tools
+# This installs Virtualmin and its dependencies.
+aptitude -y install apt-transport-https
+aptitude -y install python apt-show-versions libapt-pkg-perl libauthen-pam-perl libio-pty-perl libnet-ssleay-perl
+wget http://software.virtualmin.com/gpl/scripts/install.sh -O /root/virtualmin-install.sh
+sh /root/virtualmin-install.sh -y
+# Change Webmin interface port from 10000 to 4242.
+sed -i"" -e "s/port=10000/port=4242/" /etc/webmin/miniserv.conf
+/etc/init.d/webmin stop
+/etc/init.d/webmin start
+goodstuff
+restartServices
