@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# Common utilities
+# Common utilities derived from https://cloud.linode.com/stackscripts/10444
 #
 
 function system_install_utils {
