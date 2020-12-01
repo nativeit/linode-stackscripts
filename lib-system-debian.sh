@@ -1,6 +1,8 @@
 #!/bin/bash
 #
 # Debian compatible version of System related utilities -- https://www.linode.com/stackscripts/view/124
+# 
+# Derived originally from https://cloud.linode.com/stackscripts/10446
 #
 #
 
