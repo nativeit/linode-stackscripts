@@ -63,6 +63,10 @@ function system_install_docker {
     DEBIAN_FRONTEND=noninteractive apt-get -y install docker-ce docker-ce-cli containerd.io
 }
 
+function system_install_rancher {
+docker run --privileged -d --restart=unless-stopped -p 80:80 -p 443:443 rancher/rancher
+}
+
 function system_setup_iptables {
     cat > /etc/iptables.firewall.rules << EOF
 *filter
