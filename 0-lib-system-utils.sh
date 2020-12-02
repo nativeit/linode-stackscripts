@@ -4,7 +4,7 @@
 #
 
 function system_install_utils {
-    DEBIAN_FRONTEND=noninteractive apt-get -y install htop iotop iftop bsd-mailx zsh vim-nox wget zip mc psmisc
+    DEBIAN_FRONTEND=noninteractive apt-get -y install htop iotop iftop bsd-mailx zsh vim-nox wget zip mc psmisc net-tools nodejs npm
 }
 
 function system_install_git {
@@ -22,14 +22,6 @@ en_US.UTF-8 UTF-8
 EOF
     /usr/sbin/locale-gen
     update-locale LANG=en_IE.UTF-8 LANGUAGE=en_US:en
-}
-
-function system_set_timezone {
-    echo "tzdata tzdata/Areas select America" | debconf-set-selections
-    echo "tzdata tzdata/Zones/America select New_York" | debconf-set-selections
-    TIMEZONE="America/New_York"
-    echo $TIMEZONE > /etc/timezone
-    dpkg-reconfigure -f noninteractive tzdata
 }
 
 function system_start_etc_dir_versioning {
