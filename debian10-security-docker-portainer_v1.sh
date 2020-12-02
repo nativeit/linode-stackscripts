@@ -60,8 +60,7 @@ echo "##########################################################################
 debian_upgrade
 system_update
 
-# Set timezone & locales
-system_install_locales
+# Set timezone
 system_set_timezone "$TZ"
 
 # Setup /etc versioning

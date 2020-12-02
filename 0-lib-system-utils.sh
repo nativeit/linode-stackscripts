@@ -15,15 +15,6 @@ function system_install_mercurial {
     DEBIAN_FRONTEND=noninteractive apt-get -y install mercurial
 }
 
-function system_install_locales {
-    DEBIAN_FRONTEND=noninteractive apt-get -y install debconf locales
-    cat > /etc/locale.gen << EOF
-en_US.UTF-8 UTF-8
-EOF
-    /usr/sbin/locale-gen
-    update-locale LANG=en_IE.UTF-8 LANGUAGE=en_US:en
-}
-
 function system_start_etc_dir_versioning {
     git config --global user.name "root"
     git config --global user.email "$NOTIFY_EMAIL"
