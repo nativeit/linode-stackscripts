@@ -53,6 +53,7 @@ function system_enable_extended_sources {
      echo "deb-src http://httpredir.debian.org/debian buster main non-free contrib" >> /etc/apt/sources.list
      echo -e "\ndeb http://security.debian.org/debian-security buster/updates main contrib non-free" >> /etc/apt/sources.list
      echo -e "deb-src http://security.debian.org/debian-security buster/updates main contrib non-free\n" >> /etc/apt/sources.list
+    apt-get update
 }
 
 function system_add_user {
