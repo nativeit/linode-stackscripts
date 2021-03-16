@@ -11,10 +11,8 @@
 # <udf name="user1_sshkey" label="Public Key for user 1" default="" example="Recommended method of authentication. It is more secure than password log in." />
 # <udf name="user1_shell" label="Shell" oneof="/bin/zsh,/bin/bash" default="/bin/bash" />
 # <udf name="user1_group" label="Addl. Group" example="Add'l group (will be created) membership (sudo and sshusers are added by default)" />
-
 #
 # <udf name="sshd_port" label="SSH Listening Port" default="22" />
-#
 #
 # <udf name="domain" label="System domain name" default="example.com" example="Domain w/out hostname" />
 # <udf name="fqdn" label="Fully Qualified Domain Name (FQDN)" example="Example: docker01.mydomain.com" />
@@ -25,7 +23,6 @@
 #
 # <udf name="relay_email" label="Gmail email including domain as relay" example="Email used to login into Gmail/GApps" />
 # <udf name="relay_password" label="Gmail account app-specific password" example="Email account password (app specific with 2factor auth)" />
-
 
 # Setup "Unofficial Bash Strict Mode" -- http://redsymbol.net/articles/unofficial-bash-strict-mode/
 set -e # Exit immediately on error
@@ -48,7 +45,7 @@ source <ssinclude StackScriptID="691674"> # lib-system-debian
 set -u
 
 # Set variables
-IPADDR=$(/sbin/ifconfig eth0 | awk '/inet / { print $2 }' | sed 's/addr://')
+IPADDR=$(ip addr show eth0 | grep "inet\b" | awk '{print $2}' | cut -d/ -f1)
 NOTIFY_EMAIL=$LETSENCRYPT_EMAIL
 
 echo "###################################################################################"
