@@ -111,7 +111,7 @@ function system_configure_sshd {
     fi
     if [ -z "$2" ]; then
         SSHD_PORT=$2
-        echo "Port $2" >> /etc/ssh/sshd_config.tmp
+        echo "Port $SSHD_PORT" >> /etc/ssh/sshd_config.tmp
     fi
     sed -n 's/\(HostKey .*\)/\1/p' < /etc/ssh/sshd_config >> /etc/ssh/sshd_config.tmp
     sed -n 's/\(UsePrivilegeSeparation .*\)/\1/p' < /etc/ssh/sshd_config >> /etc/ssh/sshd_config.tmp
