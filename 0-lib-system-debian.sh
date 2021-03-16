@@ -209,7 +209,7 @@ function system_security_ufw_configure_advanced {
     ufw allow 53,7946,4789,2377/udp
     ufw allow 4242/tcp
     ufw allow 9000/tcp
-    system_record_etc_dir_changes "Setup UFW with ports for Docker, Portainer, Virtualmin, SSH"
+    ufw reload
 }
 
 function restart_services {
