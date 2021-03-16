@@ -11,6 +11,39 @@ function lower {
     echo $1 | tr '[:upper:]' '[:lower:]'
 }
 
+function system_update_locale_en_US_UTF_8 {
+    # locale-gen en_US.UTF-8
+    dpkg-reconfigure -f noninteractive locales
+    update-locale LANG=en_US.UTF-8
+}
+
+function system_update_hostname {
+    # system_update_hostname(system hostname)
+    if [ -z "$1" ]; then
+        echo "system_update_hostname() requires the system hostname as its first argument"
+        return 1;
+    fi
+    echo $1 > /etc/hostname
+    hostname -F /etc/hostname
+    echo -e "\n127.0.0.1 $1 $1.local\n" >> /etc/hosts
+}
+
+function system_get_codename {
+    echo `lsb_release -sc`
+}
+
+function system_get_release {
+    echo `lsb_release -sr`
+}
+
+function system_enable_extended_sources {
+     mv /etc/apt/sources.list /etc/apt/sources.list_bak
+     echo "deb http://httpredir.debian.org/debian buster main non-free contrib" > /etc/apt/sources.list
+     echo "deb-src http://httpredir.debian.org/debian buster main non-free contrib" >> /etc/apt/sources.list
+     echo -e "\ndeb http://security.debian.org/debian-security buster/updates main contrib non-free" >> /etc/apt/sources.list
+     echo -e "deb-src http://security.debian.org/debian-security buster/updates main contrib non-free\n" >> /etc/apt/sources.list
+}
+
 function system_add_user {
     # system_add_user(username, password, groups, shell=/bin/bash)
     USERNAME=`lower $1`
@@ -82,15 +115,8 @@ function system_sshd_passwordauthentication {
     system_sshd_edit_bool "PasswordAuthentication" "$1"
 }
 
-function system_update_hostname {
-    # system_update_hostname(system hostname)
-    if [ -z "$1" ]; then
-        echo "system_update_hostname() requires the system hostname as its first argument"
-        return 1;
-    fi
-    echo $1 > /etc/hostname
-    hostname -F /etc/hostname
-    echo -e "\n127.0.0.1 $1 $1.local\n" >> /etc/hosts
+function system_sshd_pubkeyauthentication {
+    system_sshd_edit_bool "PubkeyAuthentication" "$1"
 }
 
 function system_security_logcheck {
@@ -101,6 +127,10 @@ function system_security_logcheck {
 
 function system_security_fail2ban {
     DEBIAN_FRONTEND=noninteractive apt-get -y install fail2ban
+}
+
+function system_security_ufw_install {
+    DEBIAN_FRONTEND=noninteractive apt-get -y install ufw
 }
 
 function system_security_ufw_configure_basic {
@@ -132,33 +162,4 @@ function restart_initd_services {
         /etc/init.d/$service_name restart
         rm -f /tmp/restart_initd-$service_name
     done
-}
-
-# Maintain for compatibility with scripts using this library for Ubuntu 10.04
-
-function system_get_codename {
-    echo `lsb_release -sc`
-}
-
-function system_get_release {
-    echo `lsb_release -sr`
-}
-
-function system_sshd_pubkeyauthentication {
-    system_sshd_edit_bool "PubkeyAuthentication" "$1"
-}
-
-function system_update_locale_en_US_UTF_8 {
-    # locale-gen en_US.UTF-8
-    dpkg-reconfigure -f noninteractive locales
-    update-locale LANG=en_US.UTF-8
-}
-
-function system_enable_universe {
-    sed -i 's/^#\(.*deb.*\) universe/\1 universe/' /etc/apt/sources.list
-    apt-get update
-}
-
-function system_security_ufw_install {
-    DEBIAN_FRONTEND=noninteractive apt-get -y install ufw
 }
