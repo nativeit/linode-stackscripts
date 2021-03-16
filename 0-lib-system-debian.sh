@@ -47,6 +47,17 @@ function system_get_user_home {
     cat /etc/passwd | grep "^$1:" | cut --delimiter=":" -f6
 }
 
+function system_pimp_user_profiles {
+    # system_pimp_user_profiles(username)
+    USERNAME=`lower $1`
+    USER_HOME=`system_get_user_home "$USERNAME"`
+    mv /etc/bash.bashrc /etc/bash.bashrc_bak
+    wget -O /etc/bash.bashrc https://raw.githubusercontent.com/nativeit/nixprofile/main/bash.bashrc
+    wget -O /etc/DIR_COLORS https://raw.githubusercontent.com/nativeit/nixprofile/main/DIR_COLORS
+    DEBIAN_FRONTEND=noninteractive apt-get -y install screenfetch
+    echo -e "\n# Display ASCII informational logo at login\nscreenfetch\n" >> /$USER_HOME/.bashrc
+    
+
 function system_user_add_ssh_key {
     # system_user_add_ssh_key(username, ssh_key)
     USERNAME=`lower $1`
