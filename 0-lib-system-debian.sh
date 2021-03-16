@@ -28,6 +28,17 @@ function system_update_hostname {
     echo -e "\n127.0.0.1 $1 $1.local\n" >> /etc/hosts
 }
 
+function system_update_hosts {
+    # $1 - The IP address to set a hosts entry for
+    # $2 - The fqdn to set to the IP
+    local -r ip_address="$1" fqdn="$2"
+    [ -z "$ip_address" -o -z "$fqdn" ] && {
+        printf "IP address and/or fqdn undefined in system_add_host_entry()\n"
+        return 1;
+    }
+    echo "$ip_address $fqdn" >> /etc/hosts
+}
+
 function system_get_codename {
     echo `lsb_release -sc`
 }
