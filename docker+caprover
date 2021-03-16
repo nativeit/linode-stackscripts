@@ -50,13 +50,14 @@ echo "Please be Patient: Installation will start now....... It may take some tim
 echo "###################################################################################"
 
 ###########################################################
-# System
+# System setup
 ###########################################################
 
-# System update
+system_primary_ip
+system_primary_ipv6
+
+# Extend /etc/apt/sources.list
 system_enable_extended_sources
-debian_upgrade
-system_update
 
 # Set timezone
 system_set_timezone "$TZ"
@@ -66,8 +67,11 @@ system_install_git
 system_start_etc_dir_versioning 
 
 # Initialize hostname
-system_update_hostname "$FQDN"
+system_set_hostname "$FQDN"
 system_record_etc_dir_changes "Updated hostname" 
+
+# Update /etc/hosts
+system_update_hosts "$IPADDR" "$FQDN"
 
 # Setup NTP
 system_configure_ntp
@@ -192,12 +196,14 @@ system_install_virtualmin
 sed -i"" -e "s/port=10000/port=4242/" /etc/webmin/miniserv.conf
 touch /tmp/restart_initd-webmin
 
+# System updates
+debian_upgrade
+system_update
+
 # Wrap it up
 automatic_security_updates
 goodstuff
-all_set
 restart_services
 restart_initd_services
-
-# Reboot
-reboot
+all_set
+stackscript_cleanup
