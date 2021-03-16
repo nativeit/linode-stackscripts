@@ -6,8 +6,6 @@
 #
 #
 
-
-
 function lower {
     # helper function
     echo $1 | tr '[:upper:]' '[:lower:]'
@@ -56,7 +54,7 @@ function system_pimp_user_profiles {
     wget -O /etc/DIR_COLORS https://raw.githubusercontent.com/nativeit/nixprofile/main/DIR_COLORS
     DEBIAN_FRONTEND=noninteractive apt-get -y install screenfetch
     echo -e "\n# Display ASCII informational logo at login\nscreenfetch\n" >> /$USER_HOME/.bashrc
-    
+}
 
 function system_user_add_ssh_key {
     # system_user_add_ssh_key(username, ssh_key)
