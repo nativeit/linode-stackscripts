@@ -90,6 +90,9 @@ if [ "$USER1_SSHKEY" ]; then
 fi
 system_record_etc_dir_changes "Added sudo user account"
 
+# Setup user profile preferences
+system_pimp_user_profiles "$USER1_NAME"
+
 # Configure SSHD
 touch /etc/ssh/sshd_config.tmp
 if [ "$USER1_SSHKEY" ]; then
