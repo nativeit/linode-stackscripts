@@ -188,13 +188,10 @@ function system_security_fail2ban {
 
 function system_security_ufw_install {
     DEBIAN_FRONTEND=noninteractive apt-get -y install ufw
-}
-
-function system_security_ufw_configure_basic {
-    # see https://help.ubuntu.com/community/UFW
     ufw logging on
-	
-    ufw default deny
+
+    ufw default allow outgoing
+    ufw default deny incoming
 	
     ufw allow ssh/tcp
     ufw limit ssh/tcp
@@ -203,6 +200,8 @@ function system_security_ufw_configure_basic {
     ufw allow https/tcp
 	
     ufw enable
+    ufw logging off
+    systemctl enable ufw
 }
 
 function restart_services {
