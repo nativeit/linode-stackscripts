@@ -1,28 +1,25 @@
 #!/bin/bash
 #
-# Debian 10 w/basic setup, security, postfix gmail relay, openjdk8, Docker, Rancher
-#
+# Debian 10 w/basic setup, security, postfix gmail relay, openjdk8, Docker, Caprover
 # Copyright (c) 2020 Native IT
 #
 # IMPORTANT: Once deployed, visit https://{host}:9000 to change the default admin password!
 # 
-# <udf name="user1_name" label="User 1 account name" example="This is the account that you will be using to log in." />
-# <udf name="user1_password" label="User 1 password" />
-# <udf name="user1_sshkey" label="Public Key for user 1" default="" example="Recommended method of authentication. It is more secure than password log in." />
-# <udf name="user1_shell" label="Shell" oneof="/bin/zsh,/bin/bash" default="/bin/bash" />
-# <udf name="user1_group" label="Addl. Group" example="Add'l group (will be created) membership (sudo and sshusers are added by default)" />
+# <UDF name="user1_name" label="User 1 account name" example="This is the account that you will be using to log in." />
+# <UDF name="user1_password" label="User 1 password" />
+# <UDF name="user1_group" label="Add'l group for user 1" default="" />
+# <UDF name="user1_shell" label="Shell" oneof="/bin/zsh,/bin/bash" default="/bin/bash" />
 #
-# <udf name="sshd_port" label="SSH Listening Port" default="22" />
-#
-# <udf name="domain" label="System domain name" default="example.com" example="Domain w/out hostname" />
-# <udf name="fqdn" label="Fully Qualified Domain Name (FQDN)" example="Example: docker01.mydomain.com" />
-# <udf name="enable_le" label="Use Let's Encrypt to manage Portainer's HTTPS certificate? (Y/n)" default="Y" />
-# <udf name="letsencrypt_email" label="E-mail address for Let's Encrypt" default="sdavis@nativeit.net" />
-# <udf name="enable_www" label="Add additional 'www.' domain? (y/N)" default="N" example="Specifying 'Y' will cause Let's Encrypt to add www.{FQDN} as well. Both must resolve to your instance's IP address first!" />
-# <udf name="tz" label="Time Zone" default="America/New_York" example="Example: America/New_York (see: http://bit.ly/TZlisting)" />
-#
-# <udf name="relay_email" label="Gmail email including domain as relay" example="Email used to login into Gmail/GApps" />
-# <udf name="relay_password" label="Gmail account app-specific password" example="Email account password (app specific with 2factor auth)" />
+# <UDF name="user1_sshkey" label="Public Key for user 1" default="" example="Recommended method of authentication. It is more secure than password log in." />
+# <UDF name="sshd_port" label="SSH Listening Port" default="22" />
+# <UDF name="domain" label="System domain name" default="example.com" example="Domain w/out hostname" />
+# <UDF name="fqdn" label="Fully Qualified Domain Name" />
+# <UDF name="enable_le" label="Use Let's Encrypt to manage Portainer's HTTPS certificate? (Y/n)" default="Y" />
+# <UDF name="letsencrypt_email" label="E-mail address for Let's Encrypt" default="sdavis@nativeit.net" />
+# <UDF name="enable_www" label="Add additional 'www.' domain? (y/N)" default="N" />
+# <UDF name="tz" label="Time Zone" default="America/New_York" example="Example: America/New_York (see: http://bit.ly/TZlisting)" />
+# <UDF name="relay_email" label="Gmail email including domain as relay" example="Email used to login into Gmail/GApps" />
+# <UDF name="relay_password" label="Gmail account app-specific password" example="Email account password (app specific with 2factor auth)" />
 
 # Setup "Unofficial Bash Strict Mode" -- http://redsymbol.net/articles/unofficial-bash-strict-mode/
 set -e # Exit immediately on error
@@ -81,7 +78,6 @@ system_configure_ntp
 
 # Create user accounts
 system_add_user "$USER1_NAME" "$USER1_PASSWORD" "$USER1_GROUP" "$USER1_SHELL"
-system_get_user_home
 if [ "$USER1_SSHKEY" ]; then
     system_user_add_ssh_key "$USER1_NAME" "$USER1_SSHKEY"
 fi
@@ -89,49 +85,11 @@ system_record_etc_dir_changes "Added sudo user account"
 
 # Setup user profile preferences
 system_pimp_user_profiles "$USER1_NAME"
+system_record_etc_dir_changes "Added custom bash profile settings." 
 
 # Configure SSHD
-touch /etc/ssh/sshd_config.tmp
-if [ "$USER1_SSHKEY" ]; then
-    echo "PubkeyAuthentication yes" >> /etc/ssh/sshd_config.tmp
-    echo "PasswordAuthentication no" >> /etc/ssh/sshd_config.tmp
-else
-    echo "PubkeyAuthentication no" >> /etc/ssh/sshd_config.tmp
-    echo "PasswordAuthentication yes" >> /etc/ssh/sshd_config.tmp
-fi
-if [ "$SSHD_PORT" ]; then
-    echo "Port ${SSHD_PORT}" >> /etc/ssh/sshd_config.tmp
-fi
-sed -n 's/\(HostKey .*\)/\1/p' < /etc/ssh/sshd_config >> /etc/ssh/sshd_config.tmp
-sed -n 's/\(UsePrivilegeSeparation .*\)/\1/p' < /etc/ssh/sshd_config >> /etc/ssh/sshd_config.tmp
-sed -n 's/\(KeyRegenerationInterval .*\)/\1/p' < /etc/ssh/sshd_config >> /etc/ssh/sshd_config.tmp
-sed -n 's/\(ServerKeyBits .*\)/\1/p' < /etc/ssh/sshd_config >> /etc/ssh/sshd_config.tmp
-sed -n 's/\(SyslogFacility .*\)/\1/p' < /etc/ssh/sshd_config >> /etc/ssh/sshd_config.tmp
-sed -n 's/\(LogLevel .*\)/\1/p' < /etc/ssh/sshd_config >> /etc/ssh/sshd_config.tmp
-sed -n 's/\(LoginGraceTime .*\)/\1/p' < /etc/ssh/sshd_config >> /etc/ssh/sshd_config.tmp
-echo "PermitRootLogin no" >> /etc/ssh/sshd_config.tmp
-sed -n 's/\(StrictModes .*\)/\1/p' < /etc/ssh/sshd_config >> /etc/ssh/sshd_config.tmp
-sed -n 's/\(RSAAuthentication .*\)/\1/p' < /etc/ssh/sshd_config >> /etc/ssh/sshd_config.tmp
-sed -n 's/\(IgnoreRhosts .*\)/\1/p' < /etc/ssh/sshd_config >> /etc/ssh/sshd_config.tmp
-sed -n 's/\(RhostsRSAAuthentication .*\)/\1/p' < /etc/ssh/sshd_config >> /etc/ssh/sshd_config.tmp
-sed -n 's/\(HostbasedAuthentication .*\)/\1/p' < /etc/ssh/sshd_config >> /etc/ssh/sshd_config.tmp
-sed -n 's/\(PermitEmptyPasswords .*\)/\1/p' < /etc/ssh/sshd_config >> /etc/ssh/sshd_config.tmp
-sed -n 's/\(ChallengeResponseAuthentication .*\)/\1/p' < /etc/ssh/sshd_config >> /etc/ssh/sshd_config.tmp
-sed -n 's/\(X11Forwarding .*\)/\1/p' < /etc/ssh/sshd_config >> /etc/ssh/sshd_config.tmp
-sed -n 's/\(X11DisplayOffset .*\)/\1/p' < /etc/ssh/sshd_config >> /etc/ssh/sshd_config.tmp
-sed -n 's/\(PrintMotd .*\)/\1/p' < /etc/ssh/sshd_config >> /etc/ssh/sshd_config.tmp
-sed -n 's/\(PrintLastLog .*\)/\1/p' < /etc/ssh/sshd_config >> /etc/ssh/sshd_config.tmp
-sed -n 's/\(TCPKeepAlive .*\)/\1/p' < /etc/ssh/sshd_config >> /etc/ssh/sshd_config.tmp
-sed -n 's/\(MaxStartups .*\)/\1/p' < /etc/ssh/sshd_config >> /etc/ssh/sshd_config.tmp
-sed -n 's/\(AcceptEnv .*\)/\1/p' < /etc/ssh/sshd_config >> /etc/ssh/sshd_config.tmp
-sed -n 's/\(Subsystem .*\)/\1/p' < /etc/ssh/sshd_config >> /etc/ssh/sshd_config.tmp
-sed -n 's/\(UsePAM .*\)/\1/p' < /etc/ssh/sshd_config >> /etc/ssh/sshd_config.tmp
-echo "AllowGroups `echo sshusers | tr '[:upper:]' '[:lower:]'`" >> /etc/ssh/sshd_config.tmp
-
-mv /etc/ssh/sshd_config /etc/ssh/sshd_config.orig
-chmod 0600 /etc/ssh/sshd_config.tmp
-cp /etc/ssh/sshd_config.tmp /etc/ssh/sshd_config
-touch /tmp/restart-sshd
+system_configure_sshd "USER1_SSHKEY" "SSHD_PORT"
+system_record_etc_dir_changes "Configured SSH for key authentication and custom port." 
 
 # Setup logcheck
 system_security_logcheck
@@ -155,6 +113,7 @@ system_record_etc_dir_changes "Setup UFW with ports for Docker, Portainer, Virtu
 
 # Install basic system utilities
 system_install_utils
+system_install_java8
 system_record_etc_dir_changes "Installed common utils"
 
 # Install Postfix
