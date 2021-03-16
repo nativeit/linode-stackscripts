@@ -99,6 +99,52 @@ function system_user_add_ssh_key {
     chmod 0600 "$USER_HOME/.ssh/authorized_keys"
 }
 
+function system_configure_sshd {
+    # system_configure_sshd(sshkey, sshport)
+    touch /etc/ssh/sshd_config.tmp
+    if [ -z "$1" ]; then
+        echo "PubkeyAuthentication yes" >> /etc/ssh/sshd_config.tmp
+        echo "PasswordAuthentication no" >> /etc/ssh/sshd_config.tmp
+    else
+        echo "PubkeyAuthentication no" >> /etc/ssh/sshd_config.tmp
+        echo "PasswordAuthentication yes" >> /etc/ssh/sshd_config.tmp
+    fi
+    if [ -z "$2" ]; then
+        SSHD_PORT=$2
+        echo "Port $2" >> /etc/ssh/sshd_config.tmp
+    fi
+    sed -n 's/\(HostKey .*\)/\1/p' < /etc/ssh/sshd_config >> /etc/ssh/sshd_config.tmp
+    sed -n 's/\(UsePrivilegeSeparation .*\)/\1/p' < /etc/ssh/sshd_config >> /etc/ssh/sshd_config.tmp
+    sed -n 's/\(KeyRegenerationInterval .*\)/\1/p' < /etc/ssh/sshd_config >> /etc/ssh/sshd_config.tmp
+    sed -n 's/\(ServerKeyBits .*\)/\1/p' < /etc/ssh/sshd_config >> /etc/ssh/sshd_config.tmp
+    sed -n 's/\(SyslogFacility .*\)/\1/p' < /etc/ssh/sshd_config >> /etc/ssh/sshd_config.tmp
+    sed -n 's/\(LogLevel .*\)/\1/p' < /etc/ssh/sshd_config >> /etc/ssh/sshd_config.tmp
+    sed -n 's/\(LoginGraceTime .*\)/\1/p' < /etc/ssh/sshd_config >> /etc/ssh/sshd_config.tmp
+    echo "PermitRootLogin no" >> /etc/ssh/sshd_config.tmp
+    sed -n 's/\(StrictModes .*\)/\1/p' < /etc/ssh/sshd_config >> /etc/ssh/sshd_config.tmp
+    sed -n 's/\(RSAAuthentication .*\)/\1/p' < /etc/ssh/sshd_config >> /etc/ssh/sshd_config.tmp
+    sed -n 's/\(IgnoreRhosts .*\)/\1/p' < /etc/ssh/sshd_config >> /etc/ssh/sshd_config.tmp
+    sed -n 's/\(RhostsRSAAuthentication .*\)/\1/p' < /etc/ssh/sshd_config >> /etc/ssh/sshd_config.tmp
+    sed -n 's/\(HostbasedAuthentication .*\)/\1/p' < /etc/ssh/sshd_config >> /etc/ssh/sshd_config.tmp
+    sed -n 's/\(PermitEmptyPasswords .*\)/\1/p' < /etc/ssh/sshd_config >> /etc/ssh/sshd_config.tmp
+    sed -n 's/\(ChallengeResponseAuthentication .*\)/\1/p' < /etc/ssh/sshd_config >> /etc/ssh/sshd_config.tmp
+    sed -n 's/\(X11Forwarding .*\)/\1/p' < /etc/ssh/sshd_config >> /etc/ssh/sshd_config.tmp
+    sed -n 's/\(X11DisplayOffset .*\)/\1/p' < /etc/ssh/sshd_config >> /etc/ssh/sshd_config.tmp
+    sed -n 's/\(PrintMotd .*\)/\1/p' < /etc/ssh/sshd_config >> /etc/ssh/sshd_config.tmp
+    sed -n 's/\(PrintLastLog .*\)/\1/p' < /etc/ssh/sshd_config >> /etc/ssh/sshd_config.tmp
+    sed -n 's/\(TCPKeepAlive .*\)/\1/p' < /etc/ssh/sshd_config >> /etc/ssh/sshd_config.tmp
+    sed -n 's/\(MaxStartups .*\)/\1/p' < /etc/ssh/sshd_config >> /etc/ssh/sshd_config.tmp
+    sed -n 's/\(AcceptEnv .*\)/\1/p' < /etc/ssh/sshd_config >> /etc/ssh/sshd_config.tmp
+    sed -n 's/\(Subsystem .*\)/\1/p' < /etc/ssh/sshd_config >> /etc/ssh/sshd_config.tmp
+    sed -n 's/\(UsePAM .*\)/\1/p' < /etc/ssh/sshd_config >> /etc/ssh/sshd_config.tmp
+    echo "AllowGroups `echo sshusers | tr '[:upper:]' '[:lower:]'`" >> /etc/ssh/sshd_config.tmp
+
+    mv /etc/ssh/sshd_config /etc/ssh/sshd_config.orig
+    chmod 0600 /etc/ssh/sshd_config.tmp
+    cp /etc/ssh/sshd_config.tmp /etc/ssh/sshd_config
+    touch /tmp/restart-sshd
+}
+
 function system_sshd_edit_bool {
     # system_sshd_edit_bool (param_name, "Yes"|"No")
     VALUE=`lower $2`
@@ -163,3 +209,4 @@ function restart_initd_services {
         rm -f /tmp/restart_initd-$service_name
     done
 }
+    
